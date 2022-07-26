@@ -3,7 +3,7 @@
 - [x] Handler Function and Request Multiplexer (Router)
     - [x] Using DefaultServeMux
     - [x] Creating our own servemux
-- [ ] Marshaling data structure to JSON representation
-- [ ] Response Header
+- [x] Marshaling data structure to JSON representation
+- [x] Response Header
 - [ ] Marshaling data structure to XML representation
 - [ ] Request Header

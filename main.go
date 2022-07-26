@@ -1,17 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"net/http"
-)
+import "capi/app"
 
 func main() {
-
-	// * defining routes
-	http.HandleFunc("/greet", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, "Hello Celerates!")
-	})
-
-	// * starting the server
-	http.ListenAndServe(":8080", nil)
+	app.Start()
 }
