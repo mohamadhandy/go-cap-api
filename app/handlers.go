@@ -99,7 +99,6 @@ func UpdateCustomer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(r)
 	cust_id, _ := strconv.Atoi(params["customer_id"])
-	var counter int = 0
 	for index, item := range customers {
 		if item.ID == cust_id {
 			customers = append(customers[:index], customers[index+1:]...)
@@ -108,14 +107,8 @@ func UpdateCustomer(w http.ResponseWriter, r *http.Request) {
 			customerData.ID = cust_id
 			customers = append(customers, customerData)
 			json.NewEncoder(w).Encode(customerData)
-			counter++
+			return
 		}
-	}
-	if counter > 0 {
-		w.Header().Add("Content-Type", "application/json")
-		fmt.Fprint(w, "Update customer successfully")
-	} else {
-		fmt.Fprint(w, "Update customer unsuccessful, customer not found")
 	}
 }
 
