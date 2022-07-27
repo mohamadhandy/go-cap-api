@@ -9,7 +9,7 @@ import (
 )
 
 func Start() {
-	ch := CustomerHandler{service.NewCustomerService(domain.NewCustomerRepositoryStub())}
+	ch := CustomerHandler{service.NewCustomerService(domain.NewCustomerRepositoryDB())}
 
 	mux := mux.NewRouter()
 
@@ -18,7 +18,7 @@ func Start() {
 	// mux.HandleFunc("/customers", AddCustomer).Methods(http.MethodPost)
 
 	mux.HandleFunc("/customers", ch.GetAllCustomer).Methods(http.MethodGet)
-	// mux.HandleFunc("/customers/{customer_id:[0-9]+}", GetCustomer).Methods(http.MethodGet)
+	mux.HandleFunc("/customers/{customer_id:[0-9]+}", ch.GetCustomerByID).Methods(http.MethodGet)
 	// mux.HandleFunc("/customers/{customer_id:[0-9]+}", DeleteCustomer).Methods(http.MethodDelete)
 	// mux.HandleFunc("/customers/{customer_id:[0-9]+}", UpdateCustomer).Methods(http.MethodPut)
 

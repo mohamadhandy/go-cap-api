@@ -4,7 +4,10 @@ import (
 	"capi/service"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // type Customer struct {
@@ -45,26 +48,18 @@ func (ch *CustomerHandler) GetAllCustomer(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// func GetCustomer(w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("Getcustomer")
-// 	customer := mux.Vars(r)
-// 	customerId, _ := strconv.Atoi(customer["customer_id"])
-
-// 	var getCustomer Customer
-// 	for _, v := range customers {
-// 		if v.ID == customerId {
-// 			getCustomer = v
-// 		}
-// 	}
-
-// 	if getCustomer.ID == 0 {
-// 		w.WriteHeader(http.StatusNotFound)
-// 		fmt.Fprint(w, "customer data not found")
-// 		return
-// 	}
-// 	w.Header().Add("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(getCustomer)
-// }
+func (ch *CustomerHandler) GetCustomerByID(w http.ResponseWriter, r *http.Request) {
+	customerVars := mux.Vars(r)
+	customerId := customerVars["customer_id"]
+	customer, err := ch.service.GetCustomerByID(customerId)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, err.Error())
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(customer)
+}
 
 // func AddCustomer(w http.ResponseWriter, r *http.Request) {
 // 	var cust Customer
