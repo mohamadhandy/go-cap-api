@@ -1,3 +1,0 @@
-# capi/app
-app\handlers.go:50:4: getCustomer declared but not used
-note: module requires Go 1.17
