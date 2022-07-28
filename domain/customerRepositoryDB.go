@@ -6,16 +6,17 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 type CustomerRepositoryDB struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func NewCustomerRepositoryDB() CustomerRepositoryDB {
 	connStr := "postgres://postgres:admin@localhost/banking?sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	db, err := sqlx.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -24,9 +25,10 @@ func NewCustomerRepositoryDB() CustomerRepositoryDB {
 
 func (d CustomerRepositoryDB) FindByID(customerId string) (*Customer, *errs.AppErr) {
 	query := "select * from customers where customer_id = $1"
-	row := d.db.QueryRow(query, customerId)
+	// row := d.db.QueryRow(query, customerId)
 	var c Customer
-	err := row.Scan(&c.ID, &c.Name, &c.DateOfBirth, &c.City, &c.ZipCode, &c.Status)
+	// err := row.Scan(&c.ID, &c.Name, &c.DateOfBirth, &c.City, &c.ZipCode, &c.Status)
+	err := d.db.Get(&c, query, customerId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logger.Error("error customer data not found" + err.Error())
@@ -39,23 +41,38 @@ func (d CustomerRepositoryDB) FindByID(customerId string) (*Customer, *errs.AppE
 	return &c, nil
 }
 
-func (d CustomerRepositoryDB) FindAll() ([]Customer, error) {
+func (d CustomerRepositoryDB) FindAll(customerStatus string) ([]Customer, *errs.AppErr) {
 
-	query := "select * from customers"
-	rows, err := d.db.Query(query)
-	if err != nil {
-		log.Fatal("Error query customer table", err.Error())
-		return nil, err
-	}
-	var customers []Customer
-	for rows.Next() {
-		var c Customer
-		err := rows.Scan(&c.ID, &c.Name, &c.DateOfBirth, &c.City, &c.ZipCode, &c.Status)
+	var c []Customer
+	if customerStatus == "" {
+		query := "select * from customers"
+		err := d.db.Select(&c, query)
 		if err != nil {
-			log.Fatal("error scanning customer data", err.Error())
-			return nil, err
+			logger.Error("Error query customer table" + err.Error())
+			return nil, errs.NewUnExpectedError("unexpected database error")
 		}
-		customers = append(customers, c)
+	} else {
+		if customerStatus == "active" {
+			customerStatus = "1"
+		} else {
+			customerStatus = "0"
+		}
+		query := "select * from customers where status = $1"
+		err := d.db.Select(&c, query, customerStatus)
+		if err != nil {
+			logger.Error("Error query customer table" + err.Error())
+			return nil, errs.NewUnExpectedError("unexpected database error")
+		}
 	}
-	return customers, nil
+	// var customers []Customer
+	// for rows.Next() {
+	// 	var c Customer
+	// 	err := rows.Scan(&c.ID, &c.Name, &c.DateOfBirth, &c.City, &c.ZipCode, &c.Status)
+	// 	if err != nil {
+	// 		log.Fatal("error scanning customer data", err.Error())
+	// 		return nil, err
+	// 	}
+	// 	customers = append(customers, c)
+	// }
+	return c, nil
 }
