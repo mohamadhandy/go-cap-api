@@ -42,8 +42,9 @@ func (ch *CustomerHandler) GetAllCustomer(w http.ResponseWriter, r *http.Request
 		writeResponse(w, err.Code, err.AsMessage())
 		return
 	} else {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(customers)
+		// w.Header().Add("Content-Type", "application/json")
+		// json.NewEncoder(w).Encode(customers)
+		writeResponse(w, http.StatusOK, customers)
 	}
 
 }
