@@ -4,7 +4,6 @@ import (
 	"capi/service"
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -53,12 +52,21 @@ func (ch *CustomerHandler) GetCustomerByID(w http.ResponseWriter, r *http.Reques
 	customerId := customerVars["customer_id"]
 	customer, err := ch.service.GetCustomerByID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprint(w, err.Error())
+		// fmt.Println(w, err.Message)
+		writeResponse(w, err.Code, err.AsMessage())
+		return
+	} else {
+		writeResponse(w, http.StatusOK, customer)
 		return
 	}
+}
+
+func writeResponse(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(customer)
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		panic(err)
+	}
 }
 
 // func AddCustomer(w http.ResponseWriter, r *http.Request) {
