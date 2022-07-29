@@ -1,9 +1,9 @@
 package app
 
 import (
+	"capi/errs"
 	"capi/service"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -35,16 +35,19 @@ type CustomerHandler struct {
 
 func (ch *CustomerHandler) GetAllCustomer(w http.ResponseWriter, r *http.Request) {
 	customerStatus := r.URL.Query().Get("status")
-	fmt.Println("customer status", customerStatus)
-
-	customers, err := ch.service.GetAllCustomer(customerStatus)
-	if err != nil {
-		writeResponse(w, err.Code, err.AsMessage())
-		return
+	// fmt.Println("customer status", customerStatus)
+	if customerStatus == "" || customerStatus == "active" || customerStatus == "inactive" {
+		customers, err := ch.service.GetAllCustomer(customerStatus)
+		if err != nil {
+			writeResponse(w, err.Code, err.AsMessage())
+			return
+		} else {
+			writeResponse(w, http.StatusOK, customers)
+		}
 	} else {
-		// w.Header().Add("Content-Type", "application/json")
-		// json.NewEncoder(w).Encode(customers)
-		writeResponse(w, http.StatusOK, customers)
+		data := "data not found"
+		writeResponse(w, http.StatusNotFound, errs.NewNotFoundError(data))
+		return
 	}
 
 }
