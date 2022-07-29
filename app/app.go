@@ -1,7 +1,7 @@
 package app
 
 import (
-	"capi/domain"
+	domain "capi/domain/customer"
 	"capi/logger"
 	"capi/service"
 	"fmt"
