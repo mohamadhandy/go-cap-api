@@ -4,7 +4,6 @@ import (
 	"capi/errs"
 	"capi/logger"
 	"database/sql"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -14,13 +13,8 @@ type CustomerRepositoryDB struct {
 	db *sqlx.DB
 }
 
-func NewCustomerRepositoryDB() CustomerRepositoryDB {
-	connStr := "postgres://postgres:admin@localhost/banking?sslmode=disable"
-	db, err := sqlx.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return CustomerRepositoryDB{db}
+func NewCustomerRepositoryDB(db *sqlx.DB) *CustomerRepositoryDB {
+	return &CustomerRepositoryDB{db}
 }
 
 func (d CustomerRepositoryDB) FindByID(customerId string) (*Customer, *errs.AppErr) {

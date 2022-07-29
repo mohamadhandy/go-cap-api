@@ -1,4 +1,4 @@
-package app
+package handlers
 
 import (
 	"capi/errs"
@@ -28,6 +28,9 @@ import (
 // func Greet(w http.ResponseWriter, r *http.Request) {
 // 	log.Println("Greet")
 // }
+func NewUserHandler(cs service.DefaultCustomerService) *CustomerHandler {
+	return &CustomerHandler{cs}
+}
 
 type CustomerHandler struct {
 	service service.CustomerService
