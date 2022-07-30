@@ -34,9 +34,13 @@ func (ah *AccountHandler) CreateAccount(w http.ResponseWriter, r *http.Request) 
 		logger.Error(err.Error())
 	}
 
-	if acc.Amount > 5000 {
-		ah.service.CreateAccount(acc.Amount, acc.CustomerId, acc.AccountType)
-		writeResponse(w, http.StatusCreated, acc)
+	if acc.Amount >= 5000 {
+		if acc.AccountType == "saving" || acc.AccountType == "checking" {
+			ah.service.CreateAccount(acc.Amount, acc.CustomerId, acc.AccountType)
+			writeResponse(w, http.StatusCreated, acc)
+		} else {
+			writeResponse(w, http.StatusBadRequest, errs.NewBadRequestError("Invalid account Type! Account Type Should 'saving' or 'checking'"))
+		}
 	} else {
 		writeResponse(w, http.StatusBadRequest, errs.NewBadRequestError("Invalid amount, amount should more than 5000"))
 		return
