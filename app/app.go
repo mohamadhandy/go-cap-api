@@ -1,6 +1,7 @@
 package app
 
 import (
+	domainacc "capi/domain/account"
 	domain "capi/domain/customer"
 	"capi/handlers"
 	"capi/logger"
@@ -32,6 +33,10 @@ func Start() {
 	customerRepoDB := domain.NewCustomerRepositoryDB(db)
 	customerService := service.NewCustomerService(customerRepoDB)
 	customerHandler := handlers.NewUserHandler(customerService)
+
+	accountRepoDB := domainacc.NewAccountRepositoryDB(db)
+	accountService := service.NewAccountService(*accountRepoDB)
+	accountHandler := handlers.NewAccountHandler(accountService)
 	mux := mux.NewRouter()
 
 	// * defining routes
@@ -42,6 +47,7 @@ func Start() {
 	mux.HandleFunc("/customers/{customer_id:[0-9]+}", customerHandler.GetCustomerByID).Methods(http.MethodGet)
 	// mux.HandleFunc("/customers/{customer_id:[0-9]+}", DeleteCustomer).Methods(http.MethodDelete)
 	// mux.HandleFunc("/customers/{customer_id:[0-9]+}", UpdateCustomer).Methods(http.MethodPut)
+	mux.HandleFunc("/accounts", accountHandler.CreateAccount).Methods(http.MethodPost)
 
 	// * starting the server
 	serverAddr := os.Getenv("SERVER_ADDRESS")
