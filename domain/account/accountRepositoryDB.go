@@ -17,7 +17,7 @@ func NewAccountRepositoryDB(db *sqlx.DB) *AccountRepositoryDB {
 	return &AccountRepositoryDB{db}
 }
 
-func (d AccountRepositoryDB) InsertAccount(amount float64, customerId string, accountType string) (*Account, *errs.AppErr) {
+func (d AccountRepositoryDB) InsertAccount(amount float64, customerId string, accountType string) (*Account, int, *errs.AppErr) {
 	query := `INSERT INTO accounts (customer_id, opening_date, account_type, amount, status) VALUES ($1, $2, $3, $4, $5) RETURNING account_id`
 	var time = time.Now().Format("2006-01-02T15:04:05")
 	var a = Account{
@@ -55,5 +55,5 @@ func (d AccountRepositoryDB) InsertAccount(amount float64, customerId string, ac
 		logger.Error("Error when insert " + err.Error())
 	}
 	fmt.Println("New record ID is:", id)
-	return &a, nil
+	return &a, id, nil
 }

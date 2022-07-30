@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"capi/dto"
 	"capi/errs"
 )
 
@@ -14,5 +15,13 @@ type Account struct {
 }
 
 type AccountRepository interface {
-	InsertAccount(float64, string, string) (*Account, errs.AppErr)
+	InsertAccount(float64, string, string) (*Account, int, errs.AppErr)
+}
+
+func (a Account) ToDTO() dto.AccountResponse {
+
+	return dto.AccountResponse{
+		ID:          a.ID,
+		OpeningDate: a.OpeningDate,
+	}
 }
