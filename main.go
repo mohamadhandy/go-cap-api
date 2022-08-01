@@ -3,11 +3,9 @@ package main
 import (
 	"capi/app"
 	"capi/logger"
-	"log"
 )
 
 func main() {
-	log.Println("Starting Application")
-	logger.Info("Starting application")
+	logger.Info("starting application...")
 	app.Start()
 }

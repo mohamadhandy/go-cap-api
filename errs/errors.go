@@ -1,6 +1,8 @@
 package errs
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type AppErr struct {
 	Code    int    `json:"code,omitempty"`
@@ -20,9 +22,23 @@ func NewNotFoundError(message string) *AppErr {
 	}
 }
 
-func NewUnExpectedError(message string) *AppErr {
+func NewUnexpectedError(message string) *AppErr {
 	return &AppErr{
 		Code:    http.StatusInternalServerError,
+		Message: message,
+	}
+}
+
+func NewBadRequestError(message string) *AppErr {
+	return &AppErr{
+		Code:    http.StatusBadRequest,
+		Message: message,
+	}
+}
+
+func NewValidationError(message string) *AppErr {
+	return &AppErr{
+		Code:    http.StatusUnprocessableEntity,
 		Message: message,
 	}
 }
