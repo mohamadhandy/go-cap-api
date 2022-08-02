@@ -27,9 +27,9 @@ func (s DefaultAuthService) Login(req dto.LoginRequest) (*dto.LoginResponse, *er
 	if errApp != nil {
 		return nil, errApp
 	}
-	accounts := strings.Split(login.Accounts, ",")
+	accounts := strings.Split(login.Accounts.String, ",")
 	claims := domain.AccessTokenClaims{
-		CustomerID: login.CustomerID,
+		CustomerID: login.CustomerID.String,
 		Username:   login.Username,
 		Role:       login.Role,
 		Accounts:   accounts,

@@ -2,15 +2,16 @@ package domain
 
 import (
 	"capi/errs"
+	"database/sql"
 
 	"github.com/golang-jwt/jwt/v4"
 )
 
 type Login struct {
-	Username   string `db:"username"`
-	CustomerID string `db:"customer_id"`
-	Accounts   string `db:"account_numbers"`
-	Role       string `db:"role"`
+	Username   string         `db:"username"`
+	CustomerID sql.NullString `db:"customer_id"`
+	Accounts   sql.NullString `db:"account_numbers"`
+	Role       string         `db:"role"`
 }
 
 type AccessTokenClaims struct {

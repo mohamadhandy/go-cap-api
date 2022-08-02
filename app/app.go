@@ -2,11 +2,11 @@ package app
 
 import (
 	"capi/domain"
+	"capi/errs"
 	"capi/logger"
 	"capi/service"
-	"errors"
+	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -16,6 +16,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+)
+
+type key int
+
+const (
+	userInfo key = iota
+	test
+	test2
+	// ...
 )
 
 func sanityCheck() {
@@ -69,21 +78,26 @@ func Start() {
 
 	// * create ServeMux
 	mux := mux.NewRouter()
+	mux.Use(loggingMiddleware)
+
 	authR := mux.PathPrefix("/auth").Subrouter()
 	authR.HandleFunc("/login", authH.Login).Methods(http.MethodPost)
-	authR.Use(loggingMiddleware)
 
 	// * defining routes
+	// mux.HandleFunc("/auth/login", authH.Login).Methods(http.MethodPost)
 
-	mux.HandleFunc("/customers", ch.getAllCustomers).Methods(http.MethodGet)
-	mux.HandleFunc("/customers/{customer_id:[0-9]+}", ch.getCustomerByID).Methods(http.MethodGet)
-	mux.HandleFunc("/customers/{customer_id:[0-9]+}/accounts", ah.NewAccount).Methods(http.MethodPost)
-	mux.HandleFunc("/customers/{customer_id:[0-9]+}/accounts/{account_id:[0-9]+}", ah.MakeTransaction).Methods(http.MethodPost)
+	customerR := mux.PathPrefix("/customers").Subrouter()
+	customerR.HandleFunc("/{customer_id:[0-9]+}", ch.getCustomerByID).Methods(http.MethodGet)
+	customerR.HandleFunc("/{customer_id:[0-9]+}/accounts/{account_id:[0-9]+}", ah.MakeTransaction).Methods(http.MethodPost)
+	customerR.Use(authMiddleware)
 
-	mux.Use(authMiddleware)
+	adminR := mux.PathPrefix("/customers").Subrouter()
+	adminR.HandleFunc("", ch.getAllCustomers).Methods(http.MethodGet)
+	adminR.HandleFunc("/{customer_id:[0-9]+}/accounts", ah.NewAccount).Methods(http.MethodPost)
+	adminR.Use(authMiddleware)
+	adminR.Use(isAdminMiddleware)
 
 	// * starting the server
-
 	serverAddr := os.Getenv("SERVER_ADDRESS")
 	serverPort := os.Getenv("SERVER_PORT")
 
@@ -110,48 +124,96 @@ func getClientDB() *sqlx.DB {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Do stuff here
-		log.Println(r.RequestURI)
-		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		timer := time.Now()
 		next.ServeHTTP(w, r)
-
 		logger.Info(fmt.Sprintf("%v %v %v", r.Method, r.URL, time.Since(timer)))
 	})
 }
 
 func authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-		token := r.Header.Get("Authorization")
-		// check token validation has bearer token
-		if !strings.Contains(token, "Bearer") {
-			writeResponse(w, http.StatusBadRequest, "Invalid Token!!")
+
+		// get token from header
+		authorizationHeader := r.Header.Get("Authorization")
+		if !strings.Contains(authorizationHeader, "Bearer") {
+			appErr := errs.NewBadRequestError("invalid token")
+			writeResponse(w, appErr.Code, appErr.AsMessage())
 			return
 		}
-		// Bearer token
-		tokenString := ""
-		// split token, ambil tokennya buang bearernya
-		arrayToken := strings.Split(token, " ")
-		if len(arrayToken) == 2 {
-			tokenString = arrayToken[1]
-		}
-		// parsing token, err := jwt.parse {}
-		signedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+
+		// split token
+		tokenString := strings.Replace(authorizationHeader, "Bearer ", "", -1)
+
+		// parse token with claim
+		token, err := jwt.ParseWithClaims(tokenString, &domain.AccessTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+			// token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if method, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("signing method invalid")
+			} else if method != jwt.SigningMethodHS256 {
+				return nil, fmt.Errorf("signing method invalid")
+			}
+
 			return []byte("rahasia"), nil
 		})
+
 		if err != nil {
-			writeResponse(w, http.StatusInternalServerError, err.Error())
+			appErr := errs.NewBadRequestError(err.Error())
+			writeResponse(w, appErr.Code, appErr.AsMessage())
 			return
 		}
-		if signedToken.Valid {
-			writeResponse(w, http.StatusOK, signedToken)
-		} else if errors.Is(err, jwt.ErrTokenMalformed) {
-			writeResponse(w, http.StatusUnauthorized, err.Error())
-		} else if errors.Is(err, jwt.ErrTokenExpired) {
-			writeResponse(w, http.StatusUnauthorized, err.Error())
-		} else {
-			writeResponse(w, http.StatusUnauthorized, err.Error())
+
+		claims, ok := token.Claims.(*domain.AccessTokenClaims)
+		// claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			appErr := errs.NewBadRequestError("invalid token")
+			writeResponse(w, appErr.Code, appErr.AsMessage())
+			return
 		}
+
+		if claims.Role == "user" {
+			vars := mux.Vars(r)
+			customerID := vars["customer_id"]
+			accountID := vars["account_id"]
+
+			if claims.CustomerID != customerID {
+				appErr := errs.NewForbiddenError("don'thave access to this resource")
+				writeResponse(w, appErr.Code, appErr.AsMessage())
+				return
+			}
+
+			if accountID != "" {
+				var isValidAccountID bool
+				for _, a := range claims.Accounts {
+					if a == accountID {
+						isValidAccountID = true
+					}
+				}
+				if !isValidAccountID {
+					appErr := errs.NewForbiddenError("don'thave access to this resource")
+					writeResponse(w, appErr.Code, appErr.AsMessage())
+					return
+				}
+			}
+
+		}
+
+		ctx := context.WithValue(r.Context(), userInfo, claims)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isAdminMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context().Value(userInfo).(*domain.AccessTokenClaims)
+
+		if ctx.Role != "admin" {
+			appErr := errs.NewForbiddenError("don't have enough permission")
+			writeResponse(w, appErr.Code, appErr.AsMessage())
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
